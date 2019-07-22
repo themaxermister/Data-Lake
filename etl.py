@@ -1,4 +1,4 @@
-# %%
+#%%
 import configparser
 from datetime import datetime
 import os
@@ -14,8 +14,7 @@ from pyspark.sql.types import *
 #     spark = SparkSession.builder \
 #         .config("spark.jars.packages", "JohnSnowLabs:spark-nlp:1.8.2") \
 #         .getOrCreate()
-
-#     print("CONNECTED")
+    
 #     return spark
 
 
@@ -28,11 +27,14 @@ os.environ["AWS_ACCESS_KEY_ID"]= config['AWS']['AWS_ACCESS_KEY_ID']
 os.environ["AWS_SECRET_ACCESS_KEY"]= config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 def create_spark_session():
+    '''
+        Creates Apache Spark session
+    '''
     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
         .getOrCreate()
-        
+  
     return spark
 
 #%%
@@ -57,7 +59,7 @@ def process_song_data(spark, input_data, output_data):
 
 
     # get filepath to song data file
-    song_data = input_data + "song_data/*/*/*/*.json"
+    song_data = input_data + "song_data/*/*/*/*.json"  
 
     # read song data file
     df = spark.read.json(song_data, schema=song_data_schema)
@@ -72,11 +74,8 @@ def process_song_data(spark, input_data, output_data):
         "year",
         "duration")
 
-    songs_table.printSchema()
-    songs_table.limit(5).toPandas()
-
     # write songs table to parquet files partitioned by year and artist
-    # songs_table.write.partitionBy("year", "artist_id").parquet(output_data + "song_table")
+    songs_table.write.partitionBy("year", "artist_id").parquet(output_data + "song_table")
 
     print("SONGS_TABLE DONE")
 
@@ -88,11 +87,8 @@ def process_song_data(spark, input_data, output_data):
         col("artist_latitude").alias("latitude"),
         col("artist_longitude").alias("longitude"))
 
-    artists_table.printSchema()
-    artists_table.limit(5).toPandas()
-
     # write artists table to parquet files
-    # artists_table.write.parquet(output_data + "artists_table")
+    artists_table.write.parquet(output_data + "artists_table")
 
     print("ARTISTS_TABLE DONE")
 
@@ -123,9 +119,9 @@ def process_log_data(spark, input_data, output_data):
         StructField("userAgent", StringType(), True),
         StructField("userId", StringType(), True)
     ])
-
+    
     # get filepath to log data file
-    log_data = input_data + "log_data/*/*/*.json"
+    log_data = input_data + "log_data/*.json"       #"log_data/*/*/*.json"
 
     # read log data fil
     df = spark.read.json(log_data, schema=log_data_schema)
@@ -143,34 +139,32 @@ def process_log_data(spark, input_data, output_data):
         "gender",
         "level")
     
-    users_table.printSchema()
-    users_table.limit(5).toPandas()
-
     # write users table to parquet files
-    # users_table.write.parquet(output_data + "users_table")
+    users_table.write.parquet(output_data + "users_table")
 
     print("USERS_TABLE DONE")
 
     # create timestamp column from original timestamp column
-    from pyspark.sql.functions import unix_timestamp
-    df = df.withColumn("timestamp", unix_timestamp("ts", "dd/MMM/YYYY:HH:mm:ss -SSS").cast(TimestampType()))
+    get_timestamp = udf(lambda x: str(int(int(x) / 1000)))
+    df = df.withColumn("timestamp", get_timestamp(df.ts))
+    
+    # Create datetime column from original timeestamp column
+    get_datetime = udf(lambda x: str(datetime.fromtimestamp(int(x) / 1000.0)))
+    df = df.withColumn("datetime", get_datetime(df.ts))
 
     # extract columns to create time table
     time_table = df.select(
-        col('timestamp').alias("start_time"),
-        hour('timestamp').alias('hour'),
-        dayofmonth('timestamp').alias('day'),
-        weekofyear('timestamp').alias('week'),
-        month('timestamp').alias('month'),
-        year('timestamp').alias('year'),
-        date_format('timestamp', 'F').alias('weekday')
+        col("timestamp").alias("start_time"),
+        hour('datetime').alias('hour'),
+        dayofmonth('datetime').alias('day'),
+        weekofyear('datetime').alias('week'),
+        month('datetime').alias('month'),
+        year('datetime').alias('year'),
+        date_format('datetime', 'F').alias('weekday')
     )
     
-    time_table.printSchema()
-    time_table.limit(5).toPandas()
-
     # write time table to parquet files partitioned by year and month
-    # time_table.write.partitionBy("year", "month").parquet(output_data + "time_table")
+    time_table.write.partitionBy("year", "month").parquet(output_data + "time_table")
 
     print("TIME_TABLE DONE")
 
@@ -183,26 +177,26 @@ def process_log_data(spark, input_data, output_data):
     # merge song_data and log_data
     merged_df = df.join(song_df, df.artist == song_df.artist_name, 'inner')
 
-    merged_df.printSchema()
     print("SONG_DATA & LOG_DATA MERGED")
 
     # extract columns from joined song and log datasets to create songplays table 
     songplays_table = merged_df.select(
+        col("ts").alias("start_time"),
         col("userId").alias("user_id"), 
-        "level", "song_id", "artist_id", 
+        "level", 
+        "song_id",
+        "artist_id", 
         col("sessionId").alias("session_id"),
         "location", 
         col("userAgent").alias("user_agent"),
-        month("timestamp").alias('month'),
-        year("timestamp").alias('year'))
+        month("datetime").alias('month'),
+        year("datetime").alias('year'))
 
     # Add serialize column as songplay_id
     songplays_table = songplays_table.withColumn("songplay_id", monotonically_increasing_id() + 1).select("songplay_id", *songplays_table.columns)
 
-    songplays_table.printSchema()
-    songplays_table.limit(5).toPandas()
     # write songplays table to parquet files partitioned by year and month
-    # songplays_table.write.partitionBy("year", "month").parquet(output_data + "songplays_table")
+    songplays_table.write.partitionBy("year", "month").parquet(output_data + "songplays_table")
 
     print("SONGPLAYS_TABLE DONE")
 
@@ -213,12 +207,8 @@ def main():
     print("CONNECTED")
 
     # AWS
-    input_data = "s3a://udacity-dend/"
-    #output_data = "s3a://udacity-dend/"
-
-    # LOCAL
-    # input_data = "./data/"
-    output_data = "./data/s3/"        
+    input_data = "s3a://udacity-dend/"                # Insert local path for local environment
+    output_data = ""                                  # Insert path where output_data will be saved
 
     process_song_data(spark, input_data, output_data)  
     print("SONG DATA PROCESS COMPLETE")
