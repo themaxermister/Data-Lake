@@ -153,8 +153,7 @@ root \
 
 ## Built with
 
-[Amazon S3](https://aws.amazon.com/S3/) - Data used
-
+[Amazon S3](https://aws.amazon.com/S3/) - Data used \
 [Python](https://www.python.org/) - Programming language
 
 ## Authors
