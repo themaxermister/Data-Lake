@@ -1,4 +1,4 @@
-# Data Lake
+# Data Lake with Apache Spark
 
 A python program that builts an etl pipeline that extracts data from S3, processes them using spark, and loads the data back into S3 as a set of dimensional tables. \
 The client aims to move their data warehouse to a data lake to allow the analytics team to continue finding insights in what songs their users are listening to.
@@ -154,6 +154,7 @@ root \
 ## Built with
 
 [Amazon S3](https://aws.amazon.com/S3/) - Data used
+
 [Python](https://www.python.org/) - Programming language
 
 ## Authors
