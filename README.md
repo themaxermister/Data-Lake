@@ -75,7 +75,7 @@ root \
 
 #### Sample:
 
-<img src="images/log_data.png"/>> 
+<img src="images/log_data.png"/>
 
 ## Tables
 
