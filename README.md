@@ -103,7 +103,7 @@ root \
 
 #### Sample:
 
-<img src="images/artists_table.png"/>>
+<img src="images/artists_table.png"/>
 
 ### users_table
 
@@ -116,7 +116,7 @@ root \
 
 #### Sample:
 
-<img src="images/users_table.png"/>>
+<img src="images/users_table.png"/>
 
 ### time_table
 
@@ -147,7 +147,7 @@ root \
  
 #### Sample:
 
-<img src="images/songplays_table.png"/>>
+<img src="images/songplays_table.png"/>
 
 # Project Overview
 
