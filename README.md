@@ -90,7 +90,7 @@ root \
 
 #### Sample:
 
-<img src="images/songs_table.png"/>>
+<img src="images/songs_table.png"/>
 
 ### artists_table
 
