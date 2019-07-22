@@ -49,7 +49,7 @@ root \
 
 #### Sample:
 
-<img src="images/song_data.png"/>>
+<img src="images/song_data.png"/>
 
 ### log_data                        count:8056
 
