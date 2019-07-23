@@ -144,10 +144,7 @@ def process_log_data(spark, input_data, output_data):
         col("lastName").alias("last_name"),
         "gender",
         "level",
-        "timestamp").orderBy(col("timestamp").desc())
-    
-    # Drop duplicate values and only have distinct and most recent values
-    users_table = users_table.dropDuplicates(["user_id"]).orderBy(["user_id"])
+        "timestamp").orderBy(col("timestamp").desc()).dropDuplicates(["user_id"]).orderBy(["user_id"])
     
     # write users table to parquet files
     users_table.write.parquet(output_data + "users_table")
@@ -176,23 +173,31 @@ def process_log_data(spark, input_data, output_data):
 
     print("SONG_DATA LOADED")
 
+    # create temp. tables of song_data and log_data    
+    song_df.createOrReplaceTempView("song_table")
+    df.createOrReplaceTempView("log_table")
+
     # merge song_data and log_data
-    merged_df = df.join(song_df, (df.artist == song_df.artist_name)&(df.song == song_df.title)&(df.length == song_df.duration), 'inner')
+    merged_df = spark.sql('''
+        SELECT *
+        FROM log_table log
+        INNER JOIN song_table song ON (log.song = song.title) AND (log.length = song.duration)
+    ''')
 
     print("SONG_DATA & LOG_DATA MERGED")
 
     # extract columns from joined song and log datasets to create songplays table 
     songplays_table = merged_df.select(
-        col("ts").alias("start_time"),
+        col("timestamp").alias("start_time"),
+        month("datetime").alias('month'),
+        year("datetime").alias('year'),
         col("userId").alias("user_id"), 
         "level", 
         "song_id",
         "artist_id", 
         col("sessionId").alias("session_id"),
         "location", 
-        col("userAgent").alias("user_agent"),
-        month("datetime").alias('month'),
-        year("datetime").alias('year'))
+        col("userAgent").alias("user_agent"))
 
     # Add serialize column as songplay_id
     songplays_table = songplays_table.withColumn("songplay_id", monotonically_increasing_id() + 1).select("songplay_id", *songplays_table.columns)
