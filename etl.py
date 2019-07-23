@@ -181,7 +181,7 @@ def process_log_data(spark, input_data, output_data):
     merged_df = spark.sql('''
         SELECT *
         FROM log_table log
-        INNER JOIN song_table song ON (log.song = song.title) AND (log.length = song.duration)
+        INNER JOIN song_table song ON (log.song = song.title) AND (log.length = song.duration) AND (log.artist = song.artist_name)
     ''')
 
     print("SONG_DATA & LOG_DATA MERGED")
