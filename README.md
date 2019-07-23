@@ -20,7 +20,8 @@ The client aims to move their data warehouse to a data lake to allow the analyti
 ## Running the tests
 
 1. Enter AWS credentials into dl.cfg
-2. Run etl.py
+2. Enter path to in etl.py to store output of data at 'output_data' variable
+3. Run etl.py
 
 # Data
 
@@ -56,22 +57,22 @@ root \
 root \
  |-- artist: string (nullable = true) \
  |-- auth: string (nullable = true) \
- |-- firstname: string (nullable = true) \
+ |-- firstName: string (nullable = true) \
  |-- gender: string (nullable = true) \
- |-- iteminsession: integer (nullable = true) \
- |-- lastname: string (nullable = true) \
+ |-- itemInSession: integer (nullable = true) \
+ |-- lastName: string (nullable = true) \
  |-- length: double (nullable = true) \
  |-- level: string (nullable = true) \
  |-- location: string (nullable = true) \
  |-- method: string (nullable = true) \
  |-- page: string (nullable = true) \
- |-- registration: long (nullable = true) \
- |-- sessionid: integer (nullable = true) \
+ |-- registration: double (nullable = true) \
+ |-- sessionId: integer (nullable = true) \
  |-- song: string (nullable = true) \
  |-- status: integer (nullable = true) \
- |-- ts: long (nullable = true) \
- |-- useragent: string (nullable = true) \
- |-- userid: integer (nullable = true)
+ |-- ts: string (nullable = true) \
+ |-- userAgent: string (nullable = true) \
+ |-- userId: integer (nullable = true)
 
 #### Sample:
 
@@ -107,12 +108,13 @@ root \
 
 ### users_table
 
-root \
- |-- userid: string (nullable = true) \
- |-- firstname: string (nullable = true) \
- |-- lastname: string (nullable = true) \
+root    \
+ |-- user_id: integer (nullable = true) \
+ |-- first_name: string (nullable = true) \
+ |-- last_name: string (nullable = true) \
  |-- gender: string (nullable = true) \
- |-- level: string (nullable = true)
+ |-- level: string (nullable = true) \
+ |-- timestamp: string (nullable = true
 
 #### Sample:
 

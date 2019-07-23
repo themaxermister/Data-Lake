@@ -1,18 +1,20 @@
+#%%
 import configparser
 from datetime import datetime
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col, monotonically_increasing_id
+from pyspark.sql.functions import udf, col, monotonically_increasing_id, desc
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql.types import *
 
+#%%
 # LOCAL CONNECTION
 
 # def create_spark_session():
 #     spark = SparkSession.builder \
 #         .config("spark.jars.packages", "JohnSnowLabs:spark-nlp:1.8.2") \
 #         .getOrCreate()
-    
+  
 #     return spark
 
 
@@ -25,16 +27,17 @@ os.environ["AWS_ACCESS_KEY_ID"]= config['AWS']['AWS_ACCESS_KEY_ID']
 os.environ["AWS_SECRET_ACCESS_KEY"]= config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 def create_spark_session():
-    '''
-        Creates Apache Spark session
-    '''
-    spark = SparkSession \
+     '''
+         Creates Apache Spark session
+     '''
+     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
         .getOrCreate()
-  
-    return spark
 
+     return spark
+
+#%%
 def process_song_data(spark, input_data, output_data):
     '''
         Files in song_data are processed and loaded into the following tables: songs_table, artists_table
@@ -54,7 +57,6 @@ def process_song_data(spark, input_data, output_data):
         StructField("year", IntegerType(), True)
     ])
 
-
     # get filepath to song data file
     song_data = input_data + "song_data/*/*/*/*.json"  
 
@@ -69,7 +71,7 @@ def process_song_data(spark, input_data, output_data):
         "title",
         "artist_id",
         "year",
-        "duration")
+        "duration").distinct()
 
     # write songs table to parquet files partitioned by year and artist
     songs_table.write.partitionBy("year", "artist_id").parquet(output_data + "song_table")
@@ -82,7 +84,9 @@ def process_song_data(spark, input_data, output_data):
         col("artist_name").alias("name"),
         col("artist_location").alias("location"),
         col("artist_latitude").alias("latitude"),
-        col("artist_longitude").alias("longitude"))
+        col("artist_longitude").alias("longitude")).distinct()
+
+    # Remove duplicate data
 
     # write artists table to parquet files
     artists_table.write.parquet(output_data + "artists_table")
@@ -122,24 +126,11 @@ def process_log_data(spark, input_data, output_data):
 
     # read log data fil
     df = spark.read.json(log_data, schema=log_data_schema)
-    
+
     print("LOG_DATA LOADED")
 
     # filter by actions for song plays
     df = df.where(col("page") == "NextSong")
-
-    # extract columns for users table    
-    users_table = df.select(
-        col("userId").alias("user_id"),
-        col("firstName").alias("first_name"),
-        col("lastName").alias("last_name"),
-        "gender",
-        "level")
-    
-    # write users table to parquet files
-    users_table.write.parquet(output_data + "users_table")
-
-    print("USERS_TABLE DONE")
 
     # create timestamp column from original timestamp column
     get_timestamp = udf(lambda x: str(int(int(x) / 1000)))
@@ -148,6 +139,23 @@ def process_log_data(spark, input_data, output_data):
     # Create datetime column from original timeestamp column
     get_datetime = udf(lambda x: str(datetime.fromtimestamp(int(x) / 1000.0)))
     df = df.withColumn("datetime", get_datetime(df.ts))
+
+    # extract columns for users table and order by timestamp so that most recent entry for each user is at the top
+    users_table = df.select(
+        col("userId").cast(IntegerType()).alias("user_id"),
+        col("firstName").alias("first_name"),
+        col("lastName").alias("last_name"),
+        "gender",
+        "level",
+        "timestamp").orderBy(col("timestamp").desc())
+    
+    # Drop duplicate values and only have distinct and most recent values
+    users_table = users_table.dropDuplicates(["user_id"]).orderBy(["user_id"])
+    
+    # write users table to parquet files
+    users_table.write.parquet(output_data + "users_table")
+
+    print("USERS_TABLE DONE")
 
     # extract columns to create time table
     time_table = df.select(
@@ -172,7 +180,7 @@ def process_log_data(spark, input_data, output_data):
     print("SONG_DATA LOADED")
 
     # merge song_data and log_data
-    merged_df = df.join(song_df, df.artist == song_df.artist_name, 'inner')
+    merged_df = df.join(song_df, (df.artist == song_df.artist_name)&(df.song == song_df.title)&(df.length == song_df.duration), 'inner')
 
     print("SONG_DATA & LOG_DATA MERGED")
 
