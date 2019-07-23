@@ -1,4 +1,3 @@
-#%%
 import configparser
 from datetime import datetime
 import os
@@ -7,7 +6,6 @@ from pyspark.sql.functions import udf, col, monotonically_increasing_id, desc
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql.types import *
 
-#%%
 # LOCAL CONNECTION
 
 # def create_spark_session():
@@ -37,7 +35,6 @@ def create_spark_session():
 
      return spark
 
-#%%
 def process_song_data(spark, input_data, output_data):
     '''
         Files in song_data are processed and loaded into the following tables: songs_table, artists_table
